@@ -1,11 +1,18 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import { jsonResponse, sampleJobs, sampleSummary } from './test/fixtures'
 
 function stubApi() {
-  const fetchMock = vi.fn((input: RequestInfo | URL) => {
+  const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input)
+    if (init?.method === 'POST') {
+      const id = Number(url.split('/')[3])
+      const job = sampleJobs.find((candidate) => candidate.id === id)!
+      return Promise.resolve(
+        jsonResponse({ ...job, status: 'queued', attempts: job.attempts + 1, error_message: null }, 202),
+      )
+    }
     if (url.startsWith('/api/jobs/summary')) return Promise.resolve(jsonResponse(sampleSummary))
     if (url.startsWith('/api/jobs?status=failed')) {
       return Promise.resolve(jsonResponse(sampleJobs.filter((job) => job.status === 'failed')))
@@ -43,6 +50,18 @@ describe('App', () => {
     })
     expect(await screen.findByText('Import customers_oct.csv')).toBeInTheDocument()
     expect(screen.queryByText('Resize product images (batch 42)')).not.toBeInTheDocument()
+  })
+
+  it('queues a failed job when Retry is clicked', async () => {
+    const fetchMock = stubApi()
+    render(<App />)
+    const row = (await screen.findByText('Import customers_oct.csv')).closest('tr')!
+
+    fireEvent.click(within(row).getByRole('button', { name: 'Retry' }))
+
+    expect(await within(row).findByText('Queued')).toBeInTheDocument()
+    expect(within(row).getByText('3')).toBeInTheDocument()
+    expect(fetchMock).toHaveBeenCalledWith('/api/jobs/2/retry', expect.objectContaining({ method: 'POST' }))
   })
 
   it('shows an error banner when the API request fails', async () => {

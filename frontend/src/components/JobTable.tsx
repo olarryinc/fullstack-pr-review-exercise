@@ -7,7 +7,13 @@ const dateTimeFormat = new Intl.DateTimeFormat('en-US', {
   minute: '2-digit',
 })
 
-export function JobTable({ jobs }: { jobs: Job[] }) {
+interface Props {
+  jobs: Job[]
+  retryingIds: number[]
+  onRetry: (jobId: number) => void
+}
+
+export function JobTable({ jobs, retryingIds, onRetry }: Props) {
   return (
     <table className="jobs">
       <thead>
@@ -18,12 +24,13 @@ export function JobTable({ jobs }: { jobs: Job[] }) {
           <th>Created</th>
           <th className="numeric">Attempts</th>
           <th>Error</th>
+          <th></th>
         </tr>
       </thead>
       <tbody>
         {jobs.length === 0 && (
           <tr>
-            <td colSpan={6} className="empty">
+            <td colSpan={7} className="empty">
               No jobs match this filter.
             </td>
           </tr>
@@ -38,6 +45,17 @@ export function JobTable({ jobs }: { jobs: Job[] }) {
             <td>{dateTimeFormat.format(new Date(job.created_at))}</td>
             <td className="numeric">{job.attempts}</td>
             <td className="error-text">{job.error_message ?? '–'}</td>
+            <td>
+              {job.status === 'failed' && (
+                <button
+                  type="button"
+                  disabled={retryingIds.includes(job.id)}
+                  onClick={() => onRetry(job.id)}
+                >
+                  {retryingIds.includes(job.id) ? 'Retrying…' : 'Retry'}
+                </button>
+              )}
+            </td>
           </tr>
         ))}
       </tbody>

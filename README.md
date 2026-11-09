@@ -77,5 +77,10 @@ npm run lint        # eslint
 | ------ | ---------------------------- | ------------------------------------ |
 | GET    | `/api/jobs?status=<status>`  | List jobs, optionally filtered       |
 | GET    | `/api/jobs/summary`          | Job counts by status                 |
+| POST   | `/api/jobs/{id}/retry`       | Queue a failed job to run again (202) |
 
 Job statuses: `queued`, `running`, `succeeded`, `failed`.
+
+Retrying a job marks it `queued` and runs it in the background (a simulated
+run that takes `JOBS_RUN_SECONDS`, default 3). The dashboard polls every few
+seconds so the status change shows up without a refresh.
