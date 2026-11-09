@@ -33,3 +33,7 @@ export function fetchJobs(status: StatusFilter): Promise<Job[]> {
 export function fetchSummary(): Promise<Summary> {
   return request<Summary>('/api/jobs/summary')
 }
+
+export function retryJob(jobId: number): Promise<Job> {
+  return request<Job>(`/api/jobs/${jobId}/retry`, { method: 'POST' })
+}

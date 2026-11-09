@@ -91,6 +91,22 @@ def get_job(conn: sqlite3.Connection, job_id: int) -> dict | None:
     return dict(row) if row else None
 
 
+def update_job(
+    conn: sqlite3.Connection,
+    job_id: int,
+    status: str,
+    *,
+    attempts: int | None = None,
+    error_message: str | None = None,
+) -> None:
+    conn.execute(
+        "UPDATE jobs SET status = ?, attempts = COALESCE(?, attempts), error_message = ?, updated_at = ? "
+        "WHERE id = ?",
+        (status, attempts, error_message, now(), job_id),
+    )
+    conn.commit()
+
+
 def count_by_status(conn: sqlite3.Connection) -> dict[str, int]:
     rows = conn.execute("SELECT status, COUNT(*) AS n FROM jobs GROUP BY status")
     return {row["status"]: row["n"] for row in rows}
